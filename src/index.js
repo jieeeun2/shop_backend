@@ -55,3 +55,4 @@ app.listen(port, () => { //익스프레스 앱 실행
 
 
 app.use('/users', require('./routes/users'))
+app.use('/products', require('./routes/products'))
