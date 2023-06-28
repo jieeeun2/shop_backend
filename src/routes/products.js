@@ -5,6 +5,7 @@ const Product = require('../models/Product')
 const multer = require('multer')
 
 
+
 /* multer 라이브러리를 이용한 파일업로드 
 공식문서: https://github.com/expressjs/multer/blob/master/doc/README-ko.md */
 
@@ -31,6 +32,13 @@ router.post('/image', auth, (req, res, next) => {
 router.get('/:id', auth, async (req, res, next) => {
   const type = req.query.type
   let productIds = req.params.id
+
+  if(type === 'array') {
+    let ids = productIds.split(',')
+    productIds = ids.map(item => {
+      return item
+    })
+  }
 
   try {
     const product = await Product

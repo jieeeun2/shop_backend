@@ -20,3 +20,11 @@ let auth = async (req, res, next) => {
 }
 
 module.exports = auth
+
+
+/* process.env.JWT_SECRET 이렇게 
+앞에 process.env 붙이는거는 기존 환경변수 사용법이고
+import.meta.env.VITE_SERVER_URL 이렇게 
+앞에 import.meta.en 붙이는거는 vite에서의 환경변수 사용법
+그래서 앞에 VITE_ 안붙인 변수명은 검색안되서 사용불가
+*/

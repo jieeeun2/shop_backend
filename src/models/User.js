@@ -20,7 +20,7 @@ const userSchema = mongoose.Schema({
     default: 0
   },
   image: String,
-  cart: {
+  cart: { //cart: {id(프로덕트아이디임), quantity, date} 이렇게 들어갈 예정
     type: Array,
     default: []
   },
