@@ -35,15 +35,12 @@ router.get('/:id', auth, async (req, res, next) => {
 
   if(type === 'array') {
     let ids = productIds.split(',')
-    productIds = ids.map(item => {
-      return item
-    })
+    productIds = ids.map(item => item)
   }
 
   try {
     const product = await Product
       .find({_id: {$in: productIds}}) //_id가 productIds안에 있는 Document
-      //.find({_id: productIds}) 
       .populate('writer')
       
     return res.status(200).send(product)
@@ -79,8 +76,6 @@ router.get('/', async (req, res, next) => {
   if(term) {
     findArgs["$text"] = {$search: term}  //이따가 띄워쓰기 단위가 아니라 한글자 검색도 되게 바꿔주기
   }
-
-  //console.log('findArgs', findArgs)
 
   try{
     const products = await Product.find(findArgs)
