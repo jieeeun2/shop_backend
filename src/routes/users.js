@@ -2,8 +2,11 @@ const express = require('express')
 const router = express.Router()
 const User = require('../models/User')
 const Product = require('../models/Product')
+const Payment = require('../models/Payment')
 const jwt = require('jsonwebtoken')
 const auth = require('../middleware/auth')
+const crypto = require('crypto') //이거 하니깐 됐는데 왜 필요한지 모르겠음
+const async = require('async')
 
 router.get('/auth', auth, (req, res) => {
   return res.json({
@@ -64,21 +67,22 @@ router.post('/logout', auth, async (req, res, next) => {
   }
 })
 
+
 router.post('/cart', auth, async (req, res, next) => {
+/* DetailProductPage의 ProductInfo section부분에서 '장바구니로' 버튼 눌렀을때 
+ state.userData에 cart속성이 없으면 만들어주고, 있으면 cart.quantity업데이트 */
   try {
     //먼저 User Collection에 해당 유저의 정보 가져오기
     const userInfo = await User.findOne({_id: req.user._id}) 
     //auth미들웨어에서 req.user에 user 담아놨었음
+    //console.log('userInfo: ', userInfo)
     
     let duplicate = false
     userInfo.cart.forEach(item => {
-      if(item.id === req.body.productId) {
-        duplicate = true
-      }
+      if(item.id === req.body.productId) duplicate = true 
     })
      
-    //장바구니에 이미 그 상품 존재할때
-    if(duplicate) {
+    if(duplicate) { //장바구니에 이미 그 상품 존재할때
       const user = await User.findOneAndUpdate(
         {_id: req.user._id, 'cart.id': req.body.productId}, //'cart.id' 이게 무슨 문법?
         {$inc: {'cart.$.quantity': 1}},
@@ -109,10 +113,9 @@ router.post('/cart', auth, async (req, res, next) => {
   }
 })
 
-
-
 router.delete('/cart', auth, async (req, res, next) => {
   try {
+    //먼저 cart안에 지우려고 한 상품들을 넣어주기
     const userInfo = await User.findOneAndUpdate(
       {_id: req.user._id},
       {'$pull': 
@@ -122,7 +125,9 @@ router.delete('/cart', auth, async (req, res, next) => {
     )
     const cart = userInfo.cart
 
-    const cartItemIds = userInfo.cart.map(item => item.id)
+    //Product 정보 가져옴
+    /* state값에서 삭제하는게 아니라, 삭제한 결과를 state에 반영하는 너낌으로~ */
+    const cartItemIds = cart.map(item => item.id)
     const productInfo = await Product
       .find({_id: {$in: cartItemIds}})
       .populate('writer')
@@ -132,6 +137,60 @@ router.delete('/cart', auth, async (req, res, next) => {
   }catch(error) {
     next(error)
   }
+})
+
+
+router.post('/payment', auth, async (req, res, next) => {
+  let history = []
+  let transactionData = {}
+
+  //User collection의 history field 안에 간단한 결제 정보 넣어주기 위해서 설정
+  req.body.cartDetail.forEach(item => {
+    history.push({
+      dateOfPurchase: new Date().toISOString(),
+      name: item.name,
+      id: item._id,
+      price: item.price,
+      quantity: item.quantity,
+      paymentId: crypto.randomUUID()
+    })
+  })
+
+  //Payment collection안에 자세한 결제 정보 넣어주기 위해서 설정
+  transactionData.user = {
+    id: req.user._id,
+    name: req.user.name,
+    email: req.user.email
+  }
+  transactionData.product = history
+
+  //1. User collection에 history 정보 저장
+  await User.findOneAndUpdate(
+    {_id: req.user._id},
+    {$push: {history: {$each: history}}, $set: {cart: []}},
+    //{new: true} //<- 요거 왜 안해줌?????
+  )
+
+  //2. payment collection에 transactionData 정보 저장
+  const payment = new Payment(transactionData)
+  const paymentDocs = await payment.save()
+
+  //3. Product collection의 sold 필드 정보 업데이트
+  let products = []
+  paymentDocs.product.forEach(item => {
+    products.push({id: item._id, quantity: item.quantity})
+  })
+
+  /* async.eachSeries(순환할 collection, 순환하면서 실행할 function, 콜백) */
+  async.eachSeries(products, async (item) => {
+    await Product.updateOne(
+      {_id: item.id},
+      {$inc: {'sold': item.quantity}}
+    )
+  }, (err) => {
+    if(err) return res.status(500).send(err)
+    return res.sendStatus(200)
+  })
 })
 
 

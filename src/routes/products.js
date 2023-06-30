@@ -29,20 +29,23 @@ router.post('/image', auth, (req, res, next) => {
 })
 
 
-router.get('/:id', auth, async (req, res, next) => {
+/* Product에서 id가 일치하는 것들 조회 */
+router.get('/:id', async (req, res, next) => {
+  let productsId = req.params.id
   const type = req.query.type
-  let productIds = req.params.id
+  //console.log('productsId', productsId, 'type', type)
 
-  if(type === 'array') {
-    let ids = productIds.split(',')
-    productIds = ids.map(item => item)
+  let ids = []
+  if(type === 'array'){
+    ids = productsId.split(',') 
+    productsId = ids
   }
-
+  
   try {
     const product = await Product
-      .find({_id: {$in: productIds}}) //_id가 productIds안에 있는 Document
+      .find({_id: {$in: productsId}}) 
       .populate('writer')
-      
+  
     return res.status(200).send(product)
   }catch(error) {
     next(error)
