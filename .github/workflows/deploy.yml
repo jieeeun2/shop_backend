@@ -6,7 +6,7 @@ on:
     - main
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
 
     strategy:
@@ -47,35 +47,19 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-2  
 
-      - name: Check AWS Credentials
-        run: |
-          cd /home
-          ll -al
-          sudo cat /home/ubuntu/.aws/config
-          sudo cat ~/.aws/config
-          sudo cat ~/.aws/credentials
-
-      - name: Check CodeDeploy agent status
-        run: sudo service codedeploy-agent status
-
       # CodeDeploy 사용한 S3 업로드와 EC2 배포 공식문서
       # https://docs.aws.amazon.com/ko_kr/codedeploy/latest/userguide/application-revisions-push.html
 
       - name: Upload to S3 using CodeDeploy
-        run: aws deploy push \  
-          --application-name shop-backend-codedeploy \
-          --ignore-hidden-files \
-          --s3-location s3://shop-backend/deploy.zip \
+        run: aws deploy push 
+          --application-name shop-backend-codedeploy 
+          --ignore-hidden-files 
+          --s3-location s3://shop-backend/build.zip 
           --source .
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
       - name: Deploy to EC2 from S3 using CodeDeploy
-        run: aws deploy create-deployment \
-          --application-name shop-backend-codedeploy \ 
-          --deployment-config-name CodeDeployDefault.OneAtATime \ 
-          --deployment-group-name group \ 
-          --s3-location bucket=shop-backend,key=deploy.zip,bundleType=zip
+        run: aws deploy create-deployment 
+          --application-name shop-backend-codedeploy  
+          --deployment-config-name CodeDeployDefault.AllAtOnce  
+          --deployment-group-name group  
+          --s3-location bucket=shop-backend,key=build.zip,bundleType=zip 
