@@ -4,7 +4,6 @@ const app = express()
 const path = require('path')
 
 const cors = require('cors')
-const port = 4000
 
 const mongoose = require('mongoose')
 const dotenv = require('dotenv')  
@@ -43,8 +42,8 @@ app.use(express.static(path.join(__dirname, '../uploads')))
 //터미널에서 어떤경로에서 실행하든 똑같은 결과가 나와야하니깐
 //절대경로로 해야함
 
-app.listen(port, () => { //익스프레스 앱 실행
-  console.log(`${port}번에서 실행이 되었습니다`)
+app.listen(process.env.PORT, () => { //익스프레스 앱 실행
+  console.log(`${process.env.PORT}번에서 실행이 되었습니다`)
 })  
 
 
