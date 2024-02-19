@@ -37,11 +37,6 @@ jobs:
           echo "MONGO_URI=${{ secrets.MONGO_URI }}" >> .env
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
 
-      - name: Check AWS Credentials before Configure
-        run: |
-          sudo cat ~/.aws/config
-          sudo cat ~/.aws/credentials
-
       # AWS 자격 증명 구성 프리셋
       # https://github.com/marketplace/actions/configure-aws-credentials-action-for-github-actions?version=v2#usage
 
@@ -52,7 +47,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-2
 
-      - name: Check AWS Credentials after Configure
+      - name: Check AWS Credentials
         run: |
           sudo cat ~/.aws/config
           sudo cat ~/.aws/credentials
