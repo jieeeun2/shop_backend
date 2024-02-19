@@ -1,0 +1,81 @@
+name: Build & Deploy CI/CD
+
+on:
+  push:
+    branches:
+    - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node: [ 20 ]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+        run: | 
+          node -v
+          npm -v
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Create .env file with Github Repository secrets
+        run: |
+          touch .env
+          echo "PORT=${{ secrets.PORT }}" >> .env
+          echo "MONGO_URI=${{ secrets.MONGO_URI }}" >> .env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+
+      - name: Check AWS Credentials before Configure
+        run: |
+          sudo cat ~/.aws/config
+          sudo cat ~/.aws/credentials
+
+      # AWS 자격 증명 구성 프리셋
+      # https://github.com/marketplace/actions/configure-aws-credentials-action-for-github-actions?version=v2#usage
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+
+      - name: Check AWS Credentials after Configure
+        run: |
+          sudo cat ~/.aws/config
+          sudo cat ~/.aws/credentials
+
+      - name: Check CodeDeploy agent status
+        run: sudo service codedeploy-agent status
+
+      # CodeDeploy 사용한 S3 업로드와 EC2 배포 공식문서
+      # https://docs.aws.amazon.com/ko_kr/codedeploy/latest/userguide/application-revisions-push.html
+
+      - name: Upload to S3 using CodeDeploy
+        run: aws deploy push \  
+          --application-name shop-backend-codedeploy \
+          --ignore-hidden-files \
+          --s3-location s3://shop-backend/deploy.zip \
+          --source .
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to EC2 from S3 using CodeDeploy
+        run: aws deploy create-deployment \
+          --application-name shop-backend-codedeploy \ 
+          --deployment-config-name CodeDeployDefault.OneAtATime \ 
+          --deployment-group-name group \ 
+          --s3-location bucket=shop-backend,key=deploy.zip,bundleType=zip
