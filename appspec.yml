@@ -9,3 +9,9 @@ permissions:
   - object: /home/ubuntu/build
     owner: ubuntu
     group: ubuntu
+
+hooks:
+  AfterInstall:
+    - location: scripts/after-deploy.sh
+      timeout: 300
+      runas: ubuntu
