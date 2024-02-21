@@ -36,6 +36,7 @@ jobs:
           echo "PORT=${{ secrets.PORT }}" >> .env
           echo "MONGO_URI=${{ secrets.MONGO_URI }}" >> .env
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+          cat .env
 
       # AWS 자격 증명 구성 프리셋
       # https://github.com/marketplace/actions/configure-aws-credentials-action-for-github-actions?version=v2#usage
@@ -53,7 +54,6 @@ jobs:
       - name: Upload to S3 using CodeDeploy
         run: aws deploy push 
           --application-name shop-backend-codedeploy 
-          --ignore-hidden-files 
           --s3-location s3://shop-backend/build.zip 
           --source .
 
