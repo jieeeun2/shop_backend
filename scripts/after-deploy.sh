@@ -3,4 +3,4 @@ REPOSITORY=/home/ubuntu/build
 
 cd $REPOSITORY
 
-node src/index.js
+pm2 start src/index.js --name 'backendAPI'
